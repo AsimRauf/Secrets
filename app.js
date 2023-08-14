@@ -1,4 +1,5 @@
 //jshint esversion:6
+require('dotenv').config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
@@ -11,6 +12,7 @@ const app = express();
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.static("public"));
 app.set("view engine", "ejs");
+
 
 const mongoDB = "mongodb://127.0.0.1:27017/secretsDB";
 
@@ -26,8 +28,7 @@ const userSchema = new mongoose.Schema({
   password: String
 });
 
-var secret = "thisismysecretcode";
-userSchema.plugin(encrypt, { secret: secret, encryptedFields: ['password'] });
+userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ['password'] });
 
 const User = mongoose.model('user', userSchema);
 
