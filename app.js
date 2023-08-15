@@ -4,7 +4,8 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-var encrypt = require('mongoose-encryption');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 
 const app = express();
@@ -45,18 +46,23 @@ app.get("/login", function(req, res){
 });
 
 app.post("/login", async function(req, res){
-  console.log(req.body.username);
+
+
   try{
     const user = await User.findOne({username: req.body.username})
     console.log(user);
-    if(user != null){
-      if(user.password != req.body.password)
-      {
-        res.send("incorrect password");
-      }
-      else{
-        res.redirect("/secrets");
-      }
+    if(user){
+      bcrypt.compare(req.body.password, user.password).then(function(result){
+        console.log(result);
+        if(result)
+        {
+          res.redirect("/secrets");
+        }
+        else{
+          res.send("incorrect password");
+        }
+      })
+
     } else {
       res.send("user does not exist");
     }
@@ -69,24 +75,26 @@ app.get("/register", function(req, res){
   res.render("register");
 });
 
-app.post("/register", async function(req, res){
-
-  const user = await User.findOne({username: req.body.username})
-  if(user == null){
-  const user = new User({
-    username: req.body.username,
-    password: md5(req.body.password)
-  })
-  try{
-    await user.save();
-    res.redirect("/secrets");
-  } catch(err){
-    console.log("error registering user");
+app.post("/register", function(req, res){
+  bcrypt.hash(req.body.password, saltRounds, async function(err, hash) {
+    const user = await User.findOne({username: req.body.username})
+    if(user == null){
+    const user = new User({
+      username: req.body.username,
+      password: hash
+    })
+    try{
+      await user.save();
+      res.redirect("/secrets");
+    } catch(err){
+      console.log("error registering user");
+    }
+  } else {
+    res.redirect("/login");
   }
-} else {
-  res.redirect("/login");
-}
+  });
 });
+
 
 app.get("/secrets", async function(req, res){
   try{
